@@ -21,6 +21,11 @@ Task > QPushButton {
     background-color: transparent;
 }
 
+LoadBar > QLabel {
+    color: #ffffff;
+    font-size: 14px;
+}
+
 TaskBar > QLabel {
     font-size: 28px;
     color: #ffffff;
@@ -29,7 +34,6 @@ TaskBar > QLabel {
 TaskBar > QPushButton {
     background-color: transparent;
     icon-size: 25px;
-
 }
 
 TaskDialog > QLineEdit {
@@ -62,8 +66,6 @@ Day > QLabel {
     color: #ffffff;
     font-size: 18px;
 }
-
-
 
 taskInDay > QLabel {
     color: #ffffff
@@ -138,7 +140,6 @@ Day#today QPushButton {
     color: #000000;
 }
 
-
 Day#today QScrollArea {
     background-color: #ffffff;
     border: none;
@@ -160,5 +161,18 @@ BtnGroup > QPushButton:pressed {
 
 QMainWindow {
     background-color: #000000;
+}
+
+QProgressBar {
+    border-radius: 4px;
+    background-color: transparent;
+    text-align: right;  /* Align text to the right */
+    color: #ffffff;
+    margin-right: 2em;
+}
+
+QProgressBar::chunk {
+    background-color: #ffffff;
+    border-radius: 4px;
 }
 

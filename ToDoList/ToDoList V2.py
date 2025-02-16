@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QLineEdit,
     QScrollArea,
+    QProgressBar,
 )
 from functools import partial
 from PySide6.QtCore import (
@@ -220,10 +221,12 @@ class Calendar(QWidget):
         super().__init__()
         self.today = None
         cur.execute("SELECT * FROM Tasks")
-        startRef = cur.fetchall()[0][1]
+        try:
+            startRef = cur.fetchall()[0][1]
+        except:
+            startRef = datetime.strftime(datetime.today(), "%B %d, %Y")
         startRef = datetime.strptime(startRef, "%B %d, %Y")
         self.startMonthAndYear = (startRef.month, startRef.year)
-        print(self.startMonthAndYear)
         self.currentMonthNum = datetime.now().date().month
         self.currentYear = datetime.now().date().year
         self.layout = QGridLayout()
@@ -249,7 +252,6 @@ class Calendar(QWidget):
         )
         if (datetime.now().month, datetime.now().year) == self.startMonthAndYear:
             self.backBtn.hide()
-            self.forwardBtn.hide()
         self.constructCalendar(self.currentYear, self.currentMonthNum)
 
     def constructCalendar(
@@ -380,11 +382,44 @@ class Calendar(QWidget):
         parentWidget = self.parentWidget()
         taskbar: TaskBar = parentWidget.children()[1]
         taskbar.updateDate(date)
+        if datetime.strptime(
+            date, "%B %d, %Y"
+        ).date() != datetime.today().date() and isinstance(
+            taskbar.layout.itemAt(1).widget(), LoadBar
+        ):
+            taskbar.layout.itemAt(1).widget().hide()
+        elif datetime.strptime(
+            date, "%B %d, %Y"
+        ).date() == datetime.today().date() and isinstance(
+            taskbar.layout.itemAt(1).widget(), LoadBar
+        ):
+            taskbar.layout.itemAt(1).widget().show()
         taskbar.taskContainer.removeTasks()
         if datetime.today().date() > datetime.strptime(date, "%B %d, %Y").date():
             taskbar.addTaskBtn.hide()
+            if len(tasklist) != 0:
+                taskbar.layout.insertWidget(1, LoadBar())
+                if len(tasklist) != 0:
+                    compTaskCount = 0
+                    for task in tasklist:
+                        if task[4] == 1:
+                            compTaskCount += 1
+                    val = (compTaskCount / len(tasklist)) * 100
+                    taskbar.layout.itemAt(1).widget().updateVal(val)
+        elif datetime.today().date() < datetime.strptime(date, "%B %d, %Y").date():
+            taskbar.addTaskBtn.show()
         else:
             taskbar.addTaskBtn.show()
+            if len(tasklist) != 0:
+                if not isinstance(taskbar.layout.itemAt(1).widget(), LoadBar):
+                    taskbar.layout.insertWidget(1, LoadBar())
+                if len(tasklist) != 0:
+                    compTaskCount = 0
+                    for task in tasklist:
+                        if task[4] == 1:
+                            compTaskCount += 1
+                    val = (compTaskCount / len(tasklist)) * 100
+                    taskbar.layout.itemAt(1).widget().updateVal(val)
         for task in tasklist:
             if datetime.today().date() == datetime.strptime(date, "%B %d, %Y").date():
                 taskObj = Task(
@@ -442,6 +477,32 @@ class Dialog(QDialog):
         self.close()
 
 
+class LoadBar(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
+        self.bar = QProgressBar()
+        self.bar.setValue(0)
+        self.bar.setMaximum(100)
+        self.bar.setFixedSize(300, 12)
+        self.layout.addWidget(self.bar)
+
+    def updateVal(self, val):
+        self.anim = QPropertyAnimation(self.bar, b"value")
+        self.anim.setDuration(500)
+        self.anim.setStartValue(self.bar.value())
+        self.anim.setEndValue(val)
+        self.anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self.anim.start()
+
+    def paintEvent(self, pe):
+        o = QStyleOption()
+        o.initFrom(self)
+        p = QPainter(self)
+        self.style().drawPrimitive(QStyle.PE_Widget, o, p, self)
+
+
 class BtnGroup(QWidget):
     def __init__(self):
         super().__init__()
@@ -489,6 +550,22 @@ class TaskDialog(QDialog):
     def addTask(self):
         cur.execute("select seq from sqlite_sequence WHERE name='Tasks'")
         LastId = cur.fetchall()
+        if not isinstance(self.taskBar.layout.itemAt(1).widget(), LoadBar):
+            self.taskBar.layout.insertWidget(1, LoadBar())
+        else:
+            cur.execute(
+                f"SELECT * FROM Tasks WHERE Date = '{self.taskBar.dateLabel.text()}'"
+            )
+            allTasks = cur.fetchall()
+            allTaskCount = len(allTasks) + 1
+            compTaskCount = 0
+            for task in allTasks:
+                if task[4] == 1:
+                    compTaskCount += 1
+            print(self.taskBar)
+            self.taskBar.layout.itemAt(1).widget().updateVal(
+                (compTaskCount / allTaskCount) * 100
+            )
         for widget in self.CalendarWidget.children():
             if isinstance(widget, Day):
                 if widget.date == self.taskBar.dateLabel.text():
@@ -619,8 +696,23 @@ class Task(QWidget):
                                 == datetime.today().date()
                             ):
                                 widget.topHeader.ChangeStatus(1)
+                                self.taskbarRef.layout.itemAt(1).widget().updateVal(100)
                             else:
                                 widget.topHeader.ChangeStatus(None)
+                            # else:
+                            #    widget.topHeader.ChangeStatus(None)
+                        else:
+                            cur.execute(
+                                f"SELECT * FROM Tasks WHERE Date = '{widget.date}'"
+                            )
+                            taskList = cur.fetchall()
+                            allTaskCount = len(taskList)
+                            compTaskCount = 0
+                            for task in taskList:
+                                if task[4] == 1:
+                                    compTaskCount += 1
+                            val = (compTaskCount / allTaskCount) * 100
+                            self.taskbarRef.layout.itemAt(1).widget().updateVal(val)
             return
         if dialog.cancelOp:
             dialog.destroy()
@@ -647,7 +739,18 @@ class Task(QWidget):
                         count -= 1
                     count = widget.dayTasksWidgetList.layout.count()
                     if count == 0:
+                        self.taskbarRef.layout.itemAt(1).widget().updateVal(100)
                         widget.topHeader.ChangeStatus(1)
+                    else:
+                        cur.execute(f"SELECT * FROM Tasks WHERE Date = '{widget.date}'")
+                        taskList = cur.fetchall()
+                        allTaskCount = len(taskList)
+                        compTaskCount = 0
+                        for task in taskList:
+                            if task[4] == 1:
+                                compTaskCount += 1
+                        val = (compTaskCount / allTaskCount) * 100
+                        self.taskbarRef.layout.itemAt(1).widget().updateVal(val)
                     self.crossIcon.hide()
 
     def paintEvent(self, pe):
@@ -730,8 +833,11 @@ class TaskBar(QWidget):
             datetime.strftime(datetime.date(datetime.today()), "%B %d, %Y")
         )
         self.CalendarWidget = CalendarWidget
-        self.taskContainer = TaskContainer(self.CalendarWidget, self)
+        self.taskContainer = TaskContainer(self.CalendarWidget, self)  # solve this
         self.addTaskBtn = QPushButton()
+        cur.execute(f"SELECT * FROM Tasks WHERE Date = '{self.dateLabel.text()}'")
+        taskInDb = cur.fetchall()
+        count = len(taskInDb)
         plusBtn = QPixmap("ToDoList\\Resources\\plus-large-svgrepo-com.svg")
         self.addTaskBtn.setIcon(QIcon(plusBtn))
         self.addTaskBtn.setMaximumWidth(40)
@@ -747,8 +853,18 @@ class TaskBar(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.layout.addWidget(self.dateLabel, 1)
+        if count != 0:
+            self.loadBar = LoadBar()
+            self.layout.addWidget(self.loadBar, 1)
         self.layout.addWidget(self.scrollArea, 7)
         self.layout.addWidget(self.addTaskBtn, 1, Qt.AlignmentFlag.AlignCenter)
+        if count != 0:
+            compTaskCount = 0
+            for task in taskInDb:
+                if task[4] == 1:
+                    compTaskCount += 1
+            val = (compTaskCount / count) * 100
+            self.layout.itemAt(1).widget().updateVal(val)
 
     def addBtnClick(self):
         dialog = TaskDialog(self.taskContainer, self.CalendarWidget)
