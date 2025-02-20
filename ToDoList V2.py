@@ -34,7 +34,7 @@ from datetime import datetime
 from calendar import monthrange
 from dateutil import relativedelta
 
-conn = sqlite3.connect("ToDoList\\TaskDb.db")
+conn = sqlite3.connect("TaskDb.db")
 cur = conn.cursor()
 cur.execute(
     """CREATE TABLE IF NOT EXISTS Tasks (
@@ -420,6 +420,9 @@ class Calendar(QWidget):
                             compTaskCount += 1
                     val = (compTaskCount / len(tasklist)) * 100
                     taskbar.layout.itemAt(1).widget().updateVal(val)
+            else:
+                if isinstance(taskbar.layout.itemAt(1).widget(), LoadBar):
+                    taskbar.layout.itemAt(1).widget().setParent(None)
         for task in tasklist:
             if datetime.today().date() == datetime.strptime(date, "%B %d, %Y").date():
                 taskObj = Task(
@@ -641,8 +644,8 @@ class Task(QWidget):
         self.description = QLabel(str(description))
         self.description.setObjectName("description")
         self.description.setMaximumWidth(320)
-        tickIcon = QPixmap("ToDoList\\Resources\\tick-svgrepo-com.svg")
-        crossIcon = QPixmap("ToDoList\\Resources\\cross-svgrepo-com.svg")
+        tickIcon = QPixmap("Resources\\tick-svgrepo-com.svg")
+        crossIcon = QPixmap("Resources\\cross-svgrepo-com.svg")
         self.tickMark = QPushButton()
         self.tickMark.setMaximumWidth(40)
         self.tickMark.setIcon(QIcon(tickIcon))
@@ -838,7 +841,7 @@ class TaskBar(QWidget):
         cur.execute(f"SELECT * FROM Tasks WHERE Date = '{self.dateLabel.text()}'")
         taskInDb = cur.fetchall()
         count = len(taskInDb)
-        plusBtn = QPixmap("ToDoList\\Resources\\plus-large-svgrepo-com.svg")
+        plusBtn = QPixmap("Resources\\plus-large-svgrepo-com.svg")
         self.addTaskBtn.setIcon(QIcon(plusBtn))
         self.addTaskBtn.setMaximumWidth(40)
         self.addTaskBtn.clicked.connect(self.addBtnClick)
@@ -912,7 +915,7 @@ app = QApplication()
 window = MainWindow()
 window.show()
 with open(
-    "ToDoList\\stylesheet.qss",
+    "stylesheet.qss",
 ) as f:
     style = f.read()
     app.setStyleSheet(style)
