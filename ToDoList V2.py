@@ -531,15 +531,23 @@ class TaskDialog(QDialog):
         self.setLayout(self.layout)
         self.taskHeader = QLineEdit()
         self.taskHeader.setPlaceholderText("What is your task?")
+        self.taskHeader.setMaxLength(20)
         self.description = QLineEdit()
         self.description.setPlaceholderText("Enter a short description for your task")
+        self.length = QLabel("0/30")
+        self.description.textChanged.connect(self.updateLength)
+        self.description.setMaxLength(30)
         self.btns = BtnGroup()
         self.btns.cancelBtn.clicked.connect(self.Cancel)
         self.btns.acceptBtn.clicked.connect(self.addTask)
         self.layout.addStretch(1)
         self.layout.addWidget(self.taskHeader, 3)
         self.layout.addWidget(self.description, 3)
+        self.layout.addWidget(self.length, 1)
         self.layout.addWidget(self.btns, 3)
+
+    def updateLength(self):
+        self.length.setText(f"{len(self.description.text())}/30")
 
     def paintEvent(self, event):
         painter = QPainter(self)

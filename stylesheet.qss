@@ -40,6 +40,10 @@ TaskDialog > QLineEdit {
     border-radius: 2px;
 }
 
+TaskDialog > QLabel {
+    color: #ffffff;
+}
+
 TaskDialog {
     background-color: #928ADF;
 }
@@ -158,6 +162,8 @@ BtnGroup > QPushButton:hover {
 BtnGroup > QPushButton:pressed {
     background-color: #ffe1e0e0;
 }
+
+
 
 QMainWindow {
     background-color: #000000;
