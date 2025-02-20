@@ -29,7 +29,6 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QBrush, QColor, QFont
 import sqlite3
-import pandas as pd
 from datetime import datetime
 from calendar import monthrange
 from dateutil import relativedelta
